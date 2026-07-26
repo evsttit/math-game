@@ -42,6 +42,38 @@
             border-bottom: 1px solid #334155;
         }
 
+        .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .music-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .music-btn {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.4rem;
+            transition: all 0.2s;
+            color: #94a3b8;
+        }
+
+        .music-btn:hover {
+            background: #1e293b;
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
         .level-selector {
             display: flex;
             gap: 8px;
@@ -89,7 +121,6 @@
             box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
         }
 
-        /* --- СТАТИСТИКА С ИКОНКАМИ --- */
         .stats-row {
             display: flex;
             justify-content: space-between;
@@ -116,7 +147,6 @@
             font-weight: 700;
         }
 
-        /* --- ПРИМЕР --- */
         .expression-area {
             background: #0f172a;
             border-radius: 32px;
@@ -138,7 +168,6 @@
             line-height: 1.2;
         }
 
-        /* --- ПОЛЕ ВВОДА --- */
         .input-area {
             display: flex;
             flex-direction: column;
@@ -190,7 +219,6 @@
             text-align: center;
         }
 
-        /* --- РЕКОРДЫ --- */
         .records-section {
             margin-top: 28px;
             padding-top: 20px;
@@ -285,6 +313,7 @@
             .record-item { padding: 8px 4px; }
             .record-score { font-size: 1.1rem; }
             .stats-row .stat-item img { width: 20px; height: 20px; }
+            .music-btn { width: 38px; height: 38px; font-size: 1.2rem; }
         }
     </style>
 </head>
@@ -293,26 +322,30 @@
 <div class="game-container">
 
     <div class="header">
-        <!-- Кнопки уровней со звёздами -->
-        <div class="level-selector" id="levelSelector">
-            <button class="level-btn active" data-level="1">
-                <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 1
-            </button>
-            <button class="level-btn" data-level="2">
-                <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 2
-            </button>
-            <button class="level-btn" data-level="3">
-                <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 3
-            </button>
-            <button class="level-btn" data-level="4">
-                <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 4
-            </button>
-            <button class="level-btn" data-level="5">
-                <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 5
-            </button>
+        <!-- Верхняя строка с кнопками управления музыкой -->
+        <div class="top-row">
+            <div class="level-selector" id="levelSelector">
+                <button class="level-btn active" data-level="1">
+                    <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 1
+                </button>
+                <button class="level-btn" data-level="2">
+                    <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 2
+                </button>
+                <button class="level-btn" data-level="3">
+                    <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 3
+                </button>
+                <button class="level-btn" data-level="4">
+                    <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 4
+                </button>
+                <button class="level-btn" data-level="5">
+                    <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 5
+                </button>
+            </div>
+            <div class="music-controls">
+                <button class="music-btn" id="playMusicBtn" title="Включить музыку">🔇</button>
+            </div>
         </div>
 
-        <!-- Статистика с иконкой галочки -->
         <div class="stats-row">
             <div class="stat-item">
                 <img src="https://cdn-icons-png.flaticon.com/128/14090/14090371.png" alt="correct">
@@ -356,12 +389,69 @@
         const recordsGrid = document.getElementById('recordsGrid');
         const clearRecordsBtn = document.getElementById('clearRecordsBtn');
         const levelButtons = document.querySelectorAll('.level-btn');
+        const playMusicBtn = document.getElementById('playMusicBtn');
 
         let currentLevel = 1;
         let correctStreak = 0;
         let currentAnswer = 0;
         let isLocked = false;
 
+        // --- МУЗЫКА ---
+        let audio = null;
+        let isMusicPlaying = false;
+
+        function initAudio() {
+            if (audio) return;
+            audio = new Audio();
+            audio.loop = true;
+            // Ссылка на музыкальный файл (можно заменить на свою)
+            // Используем бесплатный трек из интернета
+            audio.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+            audio.volume = 0.3;
+
+            // Автовоспроизведение после любого взаимодействия с игрой
+            audio.addEventListener('canplaythrough', function() {
+                if (isMusicPlaying) {
+                    audio.play().catch(e => console.log('Автовоспроизведение заблокировано'));
+                }
+            });
+        }
+
+        function toggleMusic() {
+            initAudio();
+            
+            if (isMusicPlaying) {
+                // Выключаем музыку
+                audio.pause();
+                isMusicPlaying = false;
+                playMusicBtn.textContent = '🔇';
+            } else {
+                // Включаем музыку
+                audio.play().catch(e => {
+                    console.log('Не удалось воспроизвести музыку:', e);
+                });
+                isMusicPlaying = true;
+                playMusicBtn.textContent = '🔊';
+            }
+        }
+
+        // При первом клике в любом месте игры пробуем включить музыку
+        function tryAutoPlay() {
+            if (!audio) {
+                initAudio();
+                // Пытаемся включить музыку при первом взаимодействии
+                if (!isMusicPlaying) {
+                    audio.play().then(() => {
+                        isMusicPlaying = true;
+                        playMusicBtn.textContent = '🔊';
+                    }).catch(e => {
+                        console.log('Для включения музыки нажмите кнопку');
+                    });
+                }
+            }
+        }
+
+        // --- РЕКОРДЫ ---
         function loadRecords() {
             try {
                 const data = localStorage.getItem('mathGameRecords');
@@ -482,6 +572,9 @@
         function checkAnswer() {
             if (isLocked) return;
 
+            // Пробуем включить музыку при первом ответе
+            tryAutoPlay();
+
             const userAnswer = parseFloat(answerInput.value);
             if (isNaN(userAnswer) || answerInput.value.trim() === '') {
                 answerInput.classList.add('error');
@@ -548,15 +641,25 @@
 
         clearRecordsBtn.addEventListener('click', clearRecords);
 
+        // Кнопка включения/выключения музыки
+        playMusicBtn.addEventListener('click', toggleMusic);
+
+        // При клике на любую область игры пробуем запустить аудио
         document.querySelector('.game-container').addEventListener('click', (e) => {
             if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
                 answerInput.focus();
             }
+            // Пробуем включить музыку при клике
+            tryAutoPlay();
         });
 
         // --- СТАРТ ---
         setLevel(1);
         updateRecordsDisplay();
+
+        // Инициализируем аудио (без воспроизведения)
+        // Ждём первого клика игрока
+        initAudio();
 
     })();
 </script>
