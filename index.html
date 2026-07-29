@@ -20,6 +20,10 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            /* Запрещаем выделение текста */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .game-container {
@@ -30,6 +34,11 @@
             width: 100%;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
             border: 1px solid #334155;
+            /* Запрещаем контекстное меню на всей игровой области */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
         }
 
         /* --- ШАПКА --- */
@@ -66,6 +75,10 @@
             font-size: 1.4rem;
             transition: all 0.2s;
             color: #94a3b8;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
         }
 
         .music-btn:hover {
@@ -98,12 +111,17 @@
             align-items: center;
             justify-content: center;
             gap: 4px;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
         }
         .level-btn img {
             width: 18px;
             height: 18px;
             filter: brightness(0) saturate(100%) invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(90%);
             transition: filter 0.2s;
+            pointer-events: none;
         }
         .level-btn.active img {
             filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
@@ -138,6 +156,7 @@
             width: 24px;
             height: 24px;
             filter: brightness(0) saturate(100%) invert(70%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(90%);
+            pointer-events: none;
         }
         .stats-row .stat-value {
             color: #facc15;
@@ -158,6 +177,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         #expression {
@@ -189,6 +211,8 @@
             text-align: center;
             -moz-appearance: textfield;
             appearance: textfield;
+            -webkit-touch-callout: none;
+            user-select: text;
         }
 
         #answerInput::-webkit-outer-spin-button,
@@ -217,6 +241,9 @@
             color: #64748b;
             font-size: 0.8rem;
             text-align: center;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .records-section {
@@ -243,6 +270,7 @@
             width: 24px;
             height: 24px;
             filter: brightness(0) saturate(100%) invert(70%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(90%);
+            pointer-events: none;
         }
 
         #clearRecordsBtn {
@@ -254,6 +282,10 @@
             font-size: 0.75rem;
             cursor: pointer;
             transition: all 0.2s;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
         }
 
         #clearRecordsBtn:hover {
@@ -274,6 +306,9 @@
             border-radius: 14px;
             text-align: center;
             border: 1px solid #334155;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .record-level {
@@ -294,6 +329,9 @@
             grid-column: 1 / -1;
             text-align: center;
             padding: 12px;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         @keyframes shake {
@@ -319,10 +357,9 @@
 </head>
 <body>
 
-<div class="game-container">
+<div class="game-container" id="gameContainer">
 
     <div class="header">
-        <!-- Верхняя строка с кнопками управления музыкой -->
         <div class="top-row">
             <div class="level-selector" id="levelSelector">
                 <button class="level-btn active" data-level="1">
@@ -355,7 +392,7 @@
         </div>
     </div>
 
-    <div class="expression-area">
+    <div class="expression-area" id="expressionArea">
         <div id="expression">1 + 2</div>
     </div>
 
@@ -383,7 +420,33 @@
     (function(){
         "use strict";
 
+        // --- ЗАПРЕТ КОНТЕКСТНОГО МЕНЮ (правый клик, долгое нажатие) ---
+        const gameContainer = document.getElementById('gameContainer');
+        
+        gameContainer.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Запрет долгого нажатия на мобильных устройствах
+        gameContainer.addEventListener('touchstart', function(e) {
+            // Отключаем долгое нажатие только если это не поле ввода
+            if (e.target.tagName !== 'INPUT') {
+                // Не даём появиться системному меню
+            }
+        }, { passive: true });
+
+        // Также запрещаем на всех кнопках и изображениях
+        document.querySelectorAll('button, img, .game-container *').forEach(el => {
+            el.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+        });
+
+        // --- DOM элементы ---
         const expressionEl = document.getElementById('expression');
+        const expressionArea = document.getElementById('expressionArea');
         const answerInput = document.getElementById('answerInput');
         const streakDisplay = document.getElementById('streakDisplay');
         const recordsGrid = document.getElementById('recordsGrid');
@@ -404,29 +467,18 @@
             if (audio) return;
             audio = new Audio();
             audio.loop = true;
-            // Ссылка на музыкальный файл (можно заменить на свою)
-            // Используем бесплатный трек из интернета
             audio.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
             audio.volume = 0.3;
-
-            // Автовоспроизведение после любого взаимодействия с игрой
-            audio.addEventListener('canplaythrough', function() {
-                if (isMusicPlaying) {
-                    audio.play().catch(e => console.log('Автовоспроизведение заблокировано'));
-                }
-            });
         }
 
         function toggleMusic() {
             initAudio();
             
             if (isMusicPlaying) {
-                // Выключаем музыку
                 audio.pause();
                 isMusicPlaying = false;
                 playMusicBtn.textContent = '🔇';
             } else {
-                // Включаем музыку
                 audio.play().catch(e => {
                     console.log('Не удалось воспроизвести музыку:', e);
                 });
@@ -435,11 +487,9 @@
             }
         }
 
-        // При первом клике в любом месте игры пробуем включить музыку
         function tryAutoPlay() {
             if (!audio) {
                 initAudio();
-                // Пытаемся включить музыку при первом взаимодействии
                 if (!isMusicPlaying) {
                     audio.play().then(() => {
                         isMusicPlaying = true;
@@ -450,6 +500,49 @@
                 }
             }
         }
+
+        // --- ОСТАНОВКА МУЗЫКИ ПРИ ПОТЕРЕ ФОКУСА ВКЛАДКИ ---
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                // Вкладка скрыта — ставим музыку на паузу
+                if (audio && isMusicPlaying) {
+                    audio.pause();
+                    // Меняем иконку, но запоминаем что музыка была включена
+                    playMusicBtn.textContent = '🔇';
+                    // Флаг оставляем true, чтобы при возврате включить
+                }
+            } else {
+                // Вкладка снова активна — возобновляем музыку, если она была включена
+                if (audio && isMusicPlaying) {
+                    audio.play().catch(e => console.log('Не удалось возобновить музыку'));
+                    playMusicBtn.textContent = '🔊';
+                }
+            }
+        }
+
+        // Слушаем изменение видимости вкладки
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // --- ОСТАНОВКА МУЗЫКИ ПРИ ПОКАЗЕ РЕКЛАМЫ (заглушка для Яндекс.Игр) ---
+        // Яндекс.Игры вызывают этот метод при показе рекламы
+        window.pauseGameAudio = function() {
+            if (audio && isMusicPlaying) {
+                audio.pause();
+                playMusicBtn.textContent = '🔇';
+            }
+        };
+
+        window.resumeGameAudio = function() {
+            if (audio && isMusicPlaying) {
+                audio.play().catch(e => console.log('Не удалось возобновить музыку'));
+                playMusicBtn.textContent = '🔊';
+            }
+        };
+
+        // Для совместимости с Яндекс.Играми
+        window.YaGames = window.YaGames || {};
+        window.YaGames.pauseAudio = window.pauseGameAudio;
+        window.YaGames.resumeAudio = window.resumeGameAudio;
 
         // --- РЕКОРДЫ ---
         function loadRecords() {
@@ -492,6 +585,7 @@
             }
         }
 
+        // --- ГЕНЕРАЦИЯ ПРИМЕРА ---
         function generateExpression(level) {
             let a, b, c, expression, answer;
             const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -572,7 +666,6 @@
         function checkAnswer() {
             if (isLocked) return;
 
-            // Пробуем включить музыку при первом ответе
             tryAutoPlay();
 
             const userAnswer = parseFloat(answerInput.value);
@@ -641,24 +734,36 @@
 
         clearRecordsBtn.addEventListener('click', clearRecords);
 
-        // Кнопка включения/выключения музыки
         playMusicBtn.addEventListener('click', toggleMusic);
 
-        // При клике на любую область игры пробуем запустить аудио
         document.querySelector('.game-container').addEventListener('click', (e) => {
             if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
                 answerInput.focus();
             }
-            // Пробуем включить музыку при клике
             tryAutoPlay();
         });
+
+        // --- ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА ОТ КОНТЕКСТНОГО МЕНЮ ---
+        // Запрещаем contextmenu на всём документе
+        document.addEventListener('contextmenu', function(e) {
+            // Разрешаем только если это не игровая область
+            if (e.target.closest('.game-container')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Запрещаем долгое нажатие на всей игровой области
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.closest('.game-container') && e.target.tagName !== 'INPUT') {
+                // Предотвращаем появление системного меню
+                // Это делается через CSS touch-action: manipulation;
+            }
+        }, { passive: true });
 
         // --- СТАРТ ---
         setLevel(1);
         updateRecordsDisplay();
-
-        // Инициализируем аудио (без воспроизведения)
-        // Ждём первого клика игрока
         initAudio();
 
     })();
