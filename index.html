@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Математический тренажер</title>
     
-    <!-- ✅ ПОДКЛЮЧЕНИЕ SDK ЯНДЕКС ИГР -->
-    <!-- Для загрузки на сервер Яндекса (архив) используем относительный путь /sdk.js -->
+    <!-- ПОДКЛЮЧЕНИЕ SDK ЯНДЕКС ИГР ДЛЯ СЕРВЕРА ЯНДЕКСА -->
     <script async src="/sdk.js" onload="initSDK()"></script>
     
     <style>
-        /* ... все стили остаются без изменений ... */
         * {
             margin: 0;
             padding: 0;
@@ -99,29 +97,30 @@
 
         .level-btn {
             flex: 1;
-            min-width: 50px;
-            padding: 10px 6px;
+            min-width: 46px;
+            padding: 10px 4px;
             background: #0f172a;
             border: 2px solid #334155;
             border-radius: 16px;
             color: #94a3b8;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.2s;
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 3px;
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
             touch-action: manipulation;
         }
+
         .level-btn img {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             filter: brightness(0) saturate(100%) invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(90%);
             transition: filter 0.2s;
             pointer-events: none;
@@ -140,6 +139,24 @@
             border-color: #3b82f6;
             color: white;
             box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Стиль для уровня с отрицательными числами (2-й) */
+        .level-btn.level-negative {
+            border-color: #8b5cf6;
+            color: #a78bfa;
+        }
+        .level-btn.level-negative.active {
+            background: #8b5cf6;
+            border-color: #8b5cf6;
+            color: white;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+        }
+        .level-btn.level-negative img {
+            filter: brightness(0) saturate(100%) invert(50%) sepia(80%) saturate(2000%) hue-rotate(240deg) brightness(100%) contrast(100%);
+        }
+        .level-btn.level-negative.active img {
+            filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
         }
 
         .stats-row {
@@ -183,6 +200,12 @@
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
+            transition: border-color 0.3s;
+        }
+
+        .expression-area.negative-mode {
+            border-color: #8b5cf6;
+            background: #1e1b2e;
         }
 
         #expression {
@@ -191,6 +214,7 @@
             color: #f8fafc;
             letter-spacing: 2px;
             line-height: 1.2;
+            transition: color 0.3s;
         }
 
         .input-area {
@@ -349,8 +373,8 @@
             .game-container { padding: 20px 16px 25px; border-radius: 32px; }
             #expression { font-size: 2.4rem; }
             #answerInput { font-size: 1.6rem; padding: 14px 18px; }
-            .level-btn { font-size: 0.75rem; padding: 8px 4px; min-width: 40px; }
-            .level-btn img { width: 14px; height: 14px; }
+            .level-btn { font-size: 0.7rem; padding: 8px 2px; min-width: 36px; }
+            .level-btn img { width: 12px; height: 12px; }
             .record-item { padding: 8px 4px; }
             .record-score { font-size: 1.1rem; }
             .stats-row .stat-item img { width: 20px; height: 20px; }
@@ -368,7 +392,7 @@
                 <button class="level-btn active" data-level="1">
                     <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 1
                 </button>
-                <button class="level-btn" data-level="2">
+                <button class="level-btn level-negative" data-level="2">
                     <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 2
                 </button>
                 <button class="level-btn" data-level="3">
@@ -379,6 +403,9 @@
                 </button>
                 <button class="level-btn" data-level="5">
                     <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 5
+                </button>
+                <button class="level-btn" data-level="6">
+                    <img src="https://cdn-icons-png.flaticon.com/128/1828/1828884.png" alt="star"> 6
                 </button>
             </div>
             <div class="music-controls">
@@ -400,7 +427,7 @@
     </div>
 
     <div class="input-area">
-        <input type="number" id="answerInput" placeholder="Введите ответ" autofocus inputmode="numeric">
+        <input type="number" id="answerInput" placeholder="Введите ответ" inputmode="numeric">
         <div class="hint">Нажмите Enter для проверки</div>
     </div>
 
@@ -421,50 +448,21 @@
 
 <script>
     // --- ИНИЦИАЛИЗАЦИЯ SDK ЯНДЕКС ИГР ---
-    // Функция вызывается после загрузки SDK (onload в теге script)
     async function initSDK() {
         try {
-            // Инициализируем SDK
             const ysdk = await YaGames.init();
-            console.log('✅ SDK Яндекс Игр инициализирован успешно!');
-            
-            // Сохраняем ysdk в глобальной области для использования в игре
             window.ysdk = ysdk;
-            
-            // Можно добавить приветствие игроку
-            // ysdk.features.LoadingAPI?.ready();
-            
+            console.log('✅ SDK Яндекс Игр инициализирован успешно!');
         } catch (error) {
             console.error('❌ Ошибка инициализации SDK:', error);
         }
-    }
-
-    // Если SDK уже загружен до вызова onload (например, при кешировании),
-    // вызываем initSDK вручную
-    if (typeof YaGames !== 'undefined') {
-        initSDK();
     }
 
     // --- ОСНОВНАЯ ЛОГИКА ИГРЫ ---
     (function(){
         "use strict";
 
-        // --- ЗАПРЕТ КОНТЕКСТНОГО МЕНЮ ---
         const gameContainer = document.getElementById('gameContainer');
-        
-        gameContainer.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            return false;
-        });
-
-        document.querySelectorAll('button, img, .game-container *').forEach(el => {
-            el.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                return false;
-            });
-        });
-
-        // --- DOM элементы ---
         const expressionEl = document.getElementById('expression');
         const expressionArea = document.getElementById('expressionArea');
         const answerInput = document.getElementById('answerInput');
@@ -478,6 +476,19 @@
         let correctStreak = 0;
         let currentAnswer = 0;
         let isLocked = false;
+
+        // --- ЗАПРЕТ КОНТЕКСТНОГО МЕНЮ ---
+        gameContainer.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        document.querySelectorAll('button, img, .game-container *').forEach(el => {
+            el.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+        });
 
         // --- МУЗЫКА ---
         let audio = null;
@@ -493,15 +504,12 @@
 
         function toggleMusic() {
             initAudio();
-            
             if (isMusicPlaying) {
                 audio.pause();
                 isMusicPlaying = false;
                 playMusicBtn.textContent = '🔇';
             } else {
-                audio.play().catch(e => {
-                    console.log('Не удалось воспроизвести музыку:', e);
-                });
+                audio.play().catch(e => console.log('Не удалось воспроизвести музыку:', e));
                 isMusicPlaying = true;
                 playMusicBtn.textContent = '🔊';
             }
@@ -514,9 +522,7 @@
                     audio.play().then(() => {
                         isMusicPlaying = true;
                         playMusicBtn.textContent = '🔊';
-                    }).catch(e => {
-                        console.log('Для включения музыки нажмите кнопку');
-                    });
+                    }).catch(e => console.log('Для включения музыки нажмите кнопку'));
                 }
             }
         }
@@ -553,10 +559,6 @@
             }
         };
 
-        window.YaGames = window.YaGames || {};
-        window.YaGames.pauseAudio = window.pauseGameAudio;
-        window.YaGames.resumeAudio = window.resumeGameAudio;
-
         // --- РЕКОРДЫ ---
         function loadRecords() {
             try {
@@ -571,7 +573,7 @@
 
         function updateRecordsDisplay() {
             const records = loadRecords();
-            const levels = [1, 2, 3, 4, 5];
+            const levels = [1, 2, 3, 4, 5, 6];
             let html = '';
             let hasRecords = false;
 
@@ -595,17 +597,6 @@
                 records[level] = streak;
                 saveRecords(records);
                 updateRecordsDisplay();
-                
-                // --- СОХРАНЕНИЕ РЕКОРДА В ЯНДЕКС.ИГРЫ (если SDK инициализирован) ---
-                try {
-                    if (window.ysdk) {
-                        // Здесь можно добавить сохранение в облако Яндекс.Игр
-                        // Например: window.ysdk.player.setData({ [`record_${level}`]: streak });
-                        console.log(`🏆 Рекорд уровня ${level}: ${streak}`);
-                    }
-                } catch (e) {
-                    console.log('SDK пока не готов для сохранения');
-                }
             }
         }
 
@@ -616,18 +607,42 @@
 
             switch(level) {
                 case 1:
-                    a = rand(1, 10); b = rand(1, 10);
+                    a = rand(1, 10);
+                    b = rand(1, 10);
                     if (Math.random() > 0.5) {
                         expression = `${a} + ${b}`;
                         answer = a + b;
                     } else {
-                        a = rand(5, 15); b = rand(1, a);
+                        a = rand(5, 15);
+                        b = rand(1, a);
                         expression = `${a} - ${b}`;
                         answer = a - b;
                     }
                     break;
+
                 case 2:
-                    a = rand(2, 9); b = rand(2, 9);
+                    if (Math.random() > 0.5) {
+                        a = rand(-15, -1);
+                        b = rand(-10, 10);
+                        while (a + b === 0) {
+                            b = rand(-10, 10);
+                        }
+                        expression = `(${a}) + (${b})`;
+                        answer = a + b;
+                    } else {
+                        a = rand(-15, -1);
+                        b = rand(-10, 10);
+                        while (a - b === 0) {
+                            b = rand(-10, 10);
+                        }
+                        expression = `(${a}) - (${b})`;
+                        answer = a - b;
+                    }
+                    break;
+
+                case 3:
+                    a = rand(2, 9);
+                    b = rand(2, 9);
                     if (Math.random() > 0.5) {
                         expression = `${a} × ${b}`;
                         answer = a * b;
@@ -638,8 +653,11 @@
                         answer = a / b;
                     }
                     break;
-                case 3:
-                    a = rand(2, 9); b = rand(2, 9); c = rand(2, 6);
+
+                case 4:
+                    a = rand(2, 9);
+                    b = rand(2, 9);
+                    c = rand(2, 6);
                     if (Math.random() > 0.5) {
                         expression = `${a} + ${b} × ${c}`;
                         answer = a + (b * c);
@@ -648,8 +666,11 @@
                         answer = (a * b) - c;
                     }
                     break;
-                case 4:
-                    a = rand(2, 8); b = rand(2, 8); c = rand(2, 5);
+
+                case 5:
+                    a = rand(2, 8);
+                    b = rand(2, 8);
+                    c = rand(2, 5);
                     if (Math.random() > 0.5) {
                         expression = `(${a} + ${b}) × ${c}`;
                         answer = (a + b) * c;
@@ -658,17 +679,22 @@
                         answer = (a * a) + b;
                     }
                     break;
-                case 5:
-                    a = rand(2, 5); b = rand(2, 4); c = rand(2, 6);
+
+                case 6:
+                    a = rand(2, 5);
+                    b = rand(2, 4);
+                    c = rand(2, 6);
                     if (Math.random() > 0.5) {
                         expression = `${a} ^ ${b} × ${c}`;
                         answer = Math.pow(a, b) * c;
                     } else {
-                        a = rand(2, 6); b = rand(2, 6);
+                        a = rand(2, 6);
+                        b = rand(2, 6);
                         expression = `(${a} + ${b}) ^ 2`;
                         answer = Math.pow(a + b, 2);
                     }
                     break;
+
                 default:
                     expression = '1 + 1';
                     answer = 2;
@@ -682,14 +708,21 @@
             currentAnswer = answer;
             answerInput.value = '';
             answerInput.className = '';
-            answerInput.focus();
+            setTimeout(() => answerInput.focus(), 50);
             isLocked = false;
             streakDisplay.textContent = correctStreak;
+
+            if (currentLevel === 2) {
+                expressionArea.classList.add('negative-mode');
+                expressionEl.style.color = '#f472b6';
+            } else {
+                expressionArea.classList.remove('negative-mode');
+                expressionEl.style.color = '#f8fafc';
+            }
         }
 
         function checkAnswer() {
             if (isLocked) return;
-
             tryAutoPlay();
 
             const userAnswer = parseFloat(answerInput.value);
@@ -729,7 +762,8 @@
             currentLevel = level;
             correctStreak = 0;
             levelButtons.forEach(btn => {
-                btn.classList.toggle('active', parseInt(btn.dataset.level) === level);
+                const btnLevel = parseInt(btn.dataset.level);
+                btn.classList.toggle('active', btnLevel === level);
             });
             refreshExample();
             updateRecordsDisplay();
@@ -757,7 +791,6 @@
         });
 
         clearRecordsBtn.addEventListener('click', clearRecords);
-
         playMusicBtn.addEventListener('click', toggleMusic);
 
         document.querySelector('.game-container').addEventListener('click', (e) => {
@@ -767,19 +800,12 @@
             tryAutoPlay();
         });
 
-        // --- ЗАЩИТА ОТ КОНТЕКСТНОГО МЕНЮ (глобально) ---
         document.addEventListener('contextmenu', function(e) {
             if (e.target.closest('.game-container')) {
                 e.preventDefault();
                 return false;
             }
         });
-
-        document.addEventListener('touchstart', function(e) {
-            if (e.target.closest('.game-container') && e.target.tagName !== 'INPUT') {
-                // Предотвращаем появление системного меню
-            }
-        }, { passive: true });
 
         // --- СТАРТ ---
         setLevel(1);
