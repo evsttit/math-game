@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Математический тренажер</title>
+    
+    <!-- ✅ ПОДКЛЮЧЕНИЕ SDK ЯНДЕКС ИГР -->
+    <!-- Для загрузки на сервер Яндекса (архив) используем относительный путь /sdk.js -->
+    <script async src="/sdk.js" onload="initSDK()"></script>
+    
     <style>
+        /* ... все стили остаются без изменений ... */
         * {
             margin: 0;
             padding: 0;
@@ -20,7 +26,6 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
-            /* Запрещаем выделение текста */
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
@@ -34,14 +39,12 @@
             width: 100%;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
             border: 1px solid #334155;
-            /* Запрещаем контекстное меню на всей игровой области */
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
             touch-action: manipulation;
         }
 
-        /* --- ШАПКА --- */
         .header {
             display: flex;
             flex-direction: column;
@@ -417,10 +420,36 @@
 </div>
 
 <script>
+    // --- ИНИЦИАЛИЗАЦИЯ SDK ЯНДЕКС ИГР ---
+    // Функция вызывается после загрузки SDK (onload в теге script)
+    async function initSDK() {
+        try {
+            // Инициализируем SDK
+            const ysdk = await YaGames.init();
+            console.log('✅ SDK Яндекс Игр инициализирован успешно!');
+            
+            // Сохраняем ysdk в глобальной области для использования в игре
+            window.ysdk = ysdk;
+            
+            // Можно добавить приветствие игроку
+            // ysdk.features.LoadingAPI?.ready();
+            
+        } catch (error) {
+            console.error('❌ Ошибка инициализации SDK:', error);
+        }
+    }
+
+    // Если SDK уже загружен до вызова onload (например, при кешировании),
+    // вызываем initSDK вручную
+    if (typeof YaGames !== 'undefined') {
+        initSDK();
+    }
+
+    // --- ОСНОВНАЯ ЛОГИКА ИГРЫ ---
     (function(){
         "use strict";
 
-        // --- ЗАПРЕТ КОНТЕКСТНОГО МЕНЮ (правый клик, долгое нажатие) ---
+        // --- ЗАПРЕТ КОНТЕКСТНОГО МЕНЮ ---
         const gameContainer = document.getElementById('gameContainer');
         
         gameContainer.addEventListener('contextmenu', function(e) {
@@ -428,15 +457,6 @@
             return false;
         });
 
-        // Запрет долгого нажатия на мобильных устройствах
-        gameContainer.addEventListener('touchstart', function(e) {
-            // Отключаем долгое нажатие только если это не поле ввода
-            if (e.target.tagName !== 'INPUT') {
-                // Не даём появиться системному меню
-            }
-        }, { passive: true });
-
-        // Также запрещаем на всех кнопках и изображениях
         document.querySelectorAll('button, img, .game-container *').forEach(el => {
             el.addEventListener('contextmenu', function(e) {
                 e.preventDefault();
@@ -501,18 +521,14 @@
             }
         }
 
-        // --- ОСТАНОВКА МУЗЫКИ ПРИ ПОТЕРЕ ФОКУСА ВКЛАДКИ ---
+        // --- ОСТАНОВКА МУЗЫКИ ПРИ ПОТЕРЕ ФОКУСА ---
         function handleVisibilityChange() {
             if (document.hidden) {
-                // Вкладка скрыта — ставим музыку на паузу
                 if (audio && isMusicPlaying) {
                     audio.pause();
-                    // Меняем иконку, но запоминаем что музыка была включена
                     playMusicBtn.textContent = '🔇';
-                    // Флаг оставляем true, чтобы при возврате включить
                 }
             } else {
-                // Вкладка снова активна — возобновляем музыку, если она была включена
                 if (audio && isMusicPlaying) {
                     audio.play().catch(e => console.log('Не удалось возобновить музыку'));
                     playMusicBtn.textContent = '🔊';
@@ -520,11 +536,9 @@
             }
         }
 
-        // Слушаем изменение видимости вкладки
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        // --- ОСТАНОВКА МУЗЫКИ ПРИ ПОКАЗЕ РЕКЛАМЫ (заглушка для Яндекс.Игр) ---
-        // Яндекс.Игры вызывают этот метод при показе рекламы
+        // --- ОСТАНОВКА МУЗЫКИ ПРИ РЕКЛАМЕ (для Яндекс.Игр) ---
         window.pauseGameAudio = function() {
             if (audio && isMusicPlaying) {
                 audio.pause();
@@ -539,7 +553,6 @@
             }
         };
 
-        // Для совместимости с Яндекс.Играми
         window.YaGames = window.YaGames || {};
         window.YaGames.pauseAudio = window.pauseGameAudio;
         window.YaGames.resumeAudio = window.resumeGameAudio;
@@ -582,6 +595,17 @@
                 records[level] = streak;
                 saveRecords(records);
                 updateRecordsDisplay();
+                
+                // --- СОХРАНЕНИЕ РЕКОРДА В ЯНДЕКС.ИГРЫ (если SDK инициализирован) ---
+                try {
+                    if (window.ysdk) {
+                        // Здесь можно добавить сохранение в облако Яндекс.Игр
+                        // Например: window.ysdk.player.setData({ [`record_${level}`]: streak });
+                        console.log(`🏆 Рекорд уровня ${level}: ${streak}`);
+                    }
+                } catch (e) {
+                    console.log('SDK пока не готов для сохранения');
+                }
             }
         }
 
@@ -743,21 +767,17 @@
             tryAutoPlay();
         });
 
-        // --- ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА ОТ КОНТЕКСТНОГО МЕНЮ ---
-        // Запрещаем contextmenu на всём документе
+        // --- ЗАЩИТА ОТ КОНТЕКСТНОГО МЕНЮ (глобально) ---
         document.addEventListener('contextmenu', function(e) {
-            // Разрешаем только если это не игровая область
             if (e.target.closest('.game-container')) {
                 e.preventDefault();
                 return false;
             }
         });
 
-        // Запрещаем долгое нажатие на всей игровой области
         document.addEventListener('touchstart', function(e) {
             if (e.target.closest('.game-container') && e.target.tagName !== 'INPUT') {
                 // Предотвращаем появление системного меню
-                // Это делается через CSS touch-action: manipulation;
             }
         }, { passive: true });
 
